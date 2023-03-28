@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+enum TimerState { stop, start, pause }
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -9,12 +11,38 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int totalSeconds = 1500;
+  static const twentyFiveMinutes = 1500;
+  int totalSeconds = twentyFiveMinutes;
+  int totalPomodoros = 0;
   late Timer timer;
+  TimerState timerState = TimerState.stop;
+
+  late final _timerHandler = {
+    TimerState.stop: () => onStopPressed(),
+    TimerState.start: () => onStartPressed(),
+    TimerState.pause: () => onPausePressed(),
+  };
 
   void onTick(Timer timer) {
+    if (totalSeconds == 0) {
+      setState(() {
+        totalPomodoros = totalPomodoros + 1;
+        totalSeconds = twentyFiveMinutes;
+      });
+      timer.cancel();
+    } else {
+      setState(() {
+        totalSeconds -= 1;
+      });
+    }
+  }
+
+  void callTimerHandler({
+    required TimerState toState,
+  }) {
     setState(() {
-      totalSeconds -= 1;
+      timerState = toState;
+      _timerHandler[timerState]!();
     });
   }
 
@@ -23,6 +51,30 @@ class _HomeScreenState extends State<HomeScreen> {
       const Duration(seconds: 1),
       onTick,
     );
+    setState(() {
+      timerState = TimerState.start;
+    });
+  }
+
+  void onPausePressed() {
+    timer.cancel();
+    setState(() {
+      timerState = TimerState.pause;
+    });
+  }
+
+  void onStopPressed() {
+    timer.cancel();
+    setState(() {
+      timerState = TimerState.stop;
+      totalSeconds = twentyFiveMinutes;
+    });
+  }
+
+  String format(int seconds) {
+    var duration = Duration(seconds: seconds);
+
+    return duration.toString().split('.').first.substring(2);
   }
 
   @override
@@ -36,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: Text(
-                '25:00',
+                format(totalSeconds),
                 style: TextStyle(
                   color: Theme.of(context).cardColor,
                   fontSize: 89,
@@ -47,15 +99,41 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Flexible(
             flex: 3,
-            child: Center(
-              child: IconButton(
-                iconSize: 120,
-                onPressed: onStartPressed,
-                icon: const Icon(
-                  Icons.play_circle_outline,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Center(
+                  child: IconButton(
+                    iconSize: 120,
+                    onPressed: () => timerState == TimerState.start
+                        ? callTimerHandler(
+                            toState: TimerState.pause,
+                          )
+                        : callTimerHandler(
+                            toState: TimerState.start,
+                          ),
+                    icon: Icon(
+                      timerState == TimerState.start
+                          ? Icons.pause_circle_outline_outlined
+                          : Icons.play_circle_outline,
+                    ),
+                    color: Theme.of(context).cardColor,
+                  ),
                 ),
-                color: Theme.of(context).cardColor,
-              ),
+                if (timerState != TimerState.stop)
+                  Center(
+                    child: IconButton(
+                      iconSize: 120,
+                      onPressed: () => callTimerHandler(
+                        toState: TimerState.stop,
+                      ),
+                      icon: const Icon(
+                        Icons.stop_circle_outlined,
+                      ),
+                      color: Theme.of(context).cardColor,
+                    ),
+                  ),
+              ],
             ),
           ),
           Flexible(
@@ -80,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Text(
-                          '$totalSeconds',
+                          '$totalPomodoros',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 58,
