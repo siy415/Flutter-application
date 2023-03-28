@@ -16,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int totalPomodoros = 0;
   late Timer timer;
   TimerState timerState = TimerState.stop;
+  bool _visibility = false;
 
   late final _timerHandler = {
     TimerState.stop: () => onStopPressed(),
@@ -37,12 +38,24 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void callTimerHandler({
+  void _callTimerHandler({
     required TimerState toState,
   }) {
     setState(() {
       timerState = toState;
       _timerHandler[timerState]!();
+    });
+  }
+
+  void _show() {
+    setState(() {
+      _visibility = true;
+    });
+  }
+
+  void _hide() {
+    setState(() {
+      _visibility = false;
     });
   }
 
@@ -52,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTick,
     );
     setState(() {
+      _show();
       timerState = TimerState.start;
     });
   }
@@ -66,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void onStopPressed() {
     timer.cancel();
     setState(() {
+      _hide();
       timerState = TimerState.stop;
       totalSeconds = twentyFiveMinutes;
     });
@@ -106,10 +121,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: IconButton(
                     iconSize: 120,
                     onPressed: () => timerState == TimerState.start
-                        ? callTimerHandler(
+                        ? _callTimerHandler(
                             toState: TimerState.pause,
                           )
-                        : callTimerHandler(
+                        : _callTimerHandler(
                             toState: TimerState.start,
                           ),
                     icon: Icon(
@@ -120,19 +135,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Theme.of(context).cardColor,
                   ),
                 ),
-                if (timerState != TimerState.stop)
-                  Center(
-                    child: IconButton(
-                      iconSize: 120,
-                      onPressed: () => callTimerHandler(
-                        toState: TimerState.stop,
-                      ),
-                      icon: const Icon(
-                        Icons.stop_circle_outlined,
-                      ),
-                      color: Theme.of(context).cardColor,
+                Visibility(
+                  visible: _visibility,
+                  child: IconButton(
+                    iconSize: 120,
+                    onPressed: () => _callTimerHandler(
+                      toState: TimerState.stop,
                     ),
+                    icon: const Icon(
+                      Icons.stop_circle_outlined,
+                    ),
+                    color: Theme.of(context).cardColor,
                   ),
+                ),
               ],
             ),
           ),
